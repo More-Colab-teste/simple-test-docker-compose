@@ -6,7 +6,7 @@ services:
     #   context: .
     #   dockerfile: Dockerfile
     ports:
-      - "${PORT}:3000"  # PORT comes from secrets
-    restart: always
+      - "${PORT}:${PORT}"  # Map same port on host and container
     environment:
+      - PORT=${PORT}  # Tell the app to use the PORT from environment
       - NODE_ENV=production
