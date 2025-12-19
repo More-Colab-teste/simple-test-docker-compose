@@ -1,0 +1,15 @@
+services:
+  app:
+    image: simple-test-docker:latest
+    container_name: simple-test-docker
+    ports:
+      - "3057:3057"  # Change this to the desired port
+    environment:
+      - PORT=3057
+    restart: unless-stopped
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge

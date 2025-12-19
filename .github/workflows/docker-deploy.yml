@@ -1,0 +1,36 @@
+name: Docker Deploy
+
+on:
+  push:
+    branches:
+      - production  # This triggers the workflow only on 'production' branch pushes
+
+jobs:
+  deploy:
+    runs-on: self-hosted  # Runs on your self-hosted runner
+
+    steps:
+      # Checkout the code from the repository
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Build the Docker image
+      - name: Build Docker image
+        run: |
+          docker build -t simple-test-docker:latest .
+
+      # Stop any existing containers running on the same name
+      - name: Stop old container (if exists)
+        run: |
+          docker stop simple-test-docker || true
+          docker rm simple-test-docker || true
+
+      # Run the new container, dynamically set port using GitHub Secret
+      - name: Run new container
+        run: |
+          docker run -d \
+            --name simple-test-docker \
+            -p ${{ secrets.PORT }}:${{ secrets.PORT }} \
+            --restart unless-stopped \
+            -e PORT=${{ secrets.PORT }} \
+            simple-test-docker:latest
