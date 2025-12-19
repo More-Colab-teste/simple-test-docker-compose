@@ -50,3 +50,78 @@ jobs:
           # List all versions available
           echo "Available versions:"
           docker images simple-test-docker --format "{{.Tag}}" | sort -r
+
+      # Verify the deployment is working
+      - name: Verify deployment
+        if: success()  # Only run if previous steps succeeded
+        run: |
+          echo "🔍 Verifying deployment on port ${{ secrets.PORT }}..."
+          
+          # Wait for app to start
+          echo "⏳ Waiting 5 seconds for application to start..."
+          sleep 5
+          
+          # Test the service
+          echo "🌐 Testing service connection..."
+          if curl -f --max-time 10 http://localhost:${{ secrets.PORT }}; then
+            echo "✅ Service is responding correctly!"
+          else
+            echo "❌ Service is not responding on port ${{ secrets.PORT }}"
+            echo "📋 Checking container logs..."
+            docker logs simple-test-docker-compose-app-1 --tail 30
+            echo "📊 Container status:"
+            docker ps --filter "name=simple-test-docker" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+            exit 1
+          fi
+          
+          # Show deployment info
+          echo -e "\n📦 Deployment details:"
+          docker ps --filter "name=simple-test-docker" --format "table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}"
+
+      # Cleanup old Docker images (keep last 3 versions)
+      - name: Cleanup old Docker images
+        if: success()  # Only run if previous steps succeeded
+        run: |
+          echo "🧹 Cleaning up old Docker images..."
+          
+          # Show current images before cleanup
+          echo "📊 Current images before cleanup:"
+          docker images simple-test-docker --format "table {{.Tag}}\t{{.CreatedAt}}" | sort -r
+          
+          # Count total versions (excluding 'latest')
+          TOTAL_VERSIONS=$(docker images simple-test-docker --format "{{.Tag}}" | grep -v 'latest' | wc -l)
+          echo "Found $TOTAL_VERSIONS versioned images (excluding 'latest')"
+          
+          if [ "$TOTAL_VERSIONS" -le 3 ]; then
+            echo "ℹ️  Only $TOTAL_VERSIONS version(s) found. Keeping all (minimum 3)."
+          else
+            echo "🗑️  Removing old images (keeping last 3 versions)..."
+            
+            # Keep last 3 versions, delete older ones
+            OLD_IMAGES=$(docker images simple-test-docker --format "{{.Tag}}" | \
+              grep -v 'latest' | \
+              sort -r | \
+              tail -n +4)
+            
+            if [ -z "$OLD_IMAGES" ]; then
+              echo "✅ No old images to remove."
+            else
+              echo "Removing these images:"
+              echo "$OLD_IMAGES" | while read TAG; do
+                echo "  - simple-test-docker:$TAG"
+              done
+              
+              # Remove the images
+              echo "$OLD_IMAGES" | xargs -I {} docker rmi simple-test-docker:{} 2>/dev/null || \
+                echo "⚠️  Note: Some images might still be in use by other containers"
+            fi
+          fi
+          
+          # Show remaining images after cleanup
+          echo -e "\n📦 Remaining images after cleanup:"
+          docker images simple-test-docker --format "table {{.Tag}}\t{{.CreatedAt}}\t{{.Size}}" | sort -r
+          
+          # Show disk usage
+          echo -e "\n💾 Total disk usage for simple-test-docker images:"
+          docker images simple-test-docker --format "table {{.Repository}}:{{.Tag}}\t{{.Size}}" | \
+            awk 'NR==1 {print $0} NR>1 {sum += $2} END {print "Total: " sum}'
