@@ -28,7 +28,7 @@ jobs:
       - name: Run new container with Docker Compose
         run: |
           # Export PORT secret for use in the compose file
-          # export PORT=${{ secrets.PORT }}
+          export PORT=${{ secrets.PORT }}
 
           # Assuming the self-hosted runner is in the correct directory where `docker-compose.yml` is located
           cd /home/ubuntu/BIOma/simple-test-docker-compose  # Adjust this path to your project folder
