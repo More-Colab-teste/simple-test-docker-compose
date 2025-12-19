@@ -22,7 +22,7 @@ jobs:
       # Stop and remove old containers (if any)
       - name: Stop old container (if exists)
         run: |
-          docker-compose down || true
+          docker compose down || true
 
       # Deploy with Docker Compose (instead of docker run)
       - name: Run new container with Docker Compose
@@ -35,4 +35,4 @@ jobs:
 
           # Ensure docker-compose.yml uses the PORT environment variable
           # If PORT is set as an environment variable in docker-compose.yml
-          docker-compose up -d --build  # Rebuild and start the containers in detached mode
+          docker compose up -d --build  # Rebuild and start the containers in detached mode
