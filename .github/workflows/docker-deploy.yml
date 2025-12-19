@@ -36,7 +36,11 @@ jobs:
           IMAGE_TAG: ${{ env.VERSION }}
         run: |
           cd /home/ubuntu/BIOma/simple-test-docker-compose
-          
+
+          # Export the variables to make them available to docker-compose
+          export PORT
+          export IMAGE_TAG
+
           # Stop old deployment
           docker compose down || true
           
