@@ -13,8 +13,5 @@ RUN npm ci --only=production
 # Copy the rest of the application code
 COPY . .
 
-# Expose the port (this is the default port in Docker, but we'll make it dynamic)
-EXPOSE ${PORT:-3057}
-
 # Command to run the application
 CMD ["node", "app.js"]
