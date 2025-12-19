@@ -1,15 +1,12 @@
 services:
   app:
-    image: simple-test-docker:latest
-    container_name: simple-test-docker
+    image: simple-test-docker:${IMAGE_TAG:-latest}  # Use environment variable, default to latest
+    # Remove the build section if you're building manually in the workflow
+    # build:
+    #   context: .
+    #   dockerfile: Dockerfile
     ports:
-      - "3057:3057"  # Change this to the desired port
+      - "${PORT}:3000"  # PORT comes from secrets
+    restart: always
     environment:
-      - PORT=3057
-    restart: unless-stopped
-    networks:
-      - app-network
-
-networks:
-  app-network:
-    driver: bridge
+      - NODE_ENV=production

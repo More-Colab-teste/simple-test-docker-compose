@@ -1,4 +1,4 @@
-name: Docker Compose Deploy
+name: Docker Compose Deploy with Versioning
 
 on:
   push:
@@ -14,25 +14,35 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Build the Docker image
-      - name: Build Docker image
+      # Generate unique version tag
+      - name: Generate version tag
         run: |
-          docker build -t simple-test-docker:latest .
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          VERSION="${SHORT_SHA}"
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "IMAGE_TAG=$VERSION" >> $GITHUB_ENV
 
-      # Stop and remove old containers (if any)
-      - name: Stop old container (if exists)
+      # Build the Docker image with version tag
+      - name: Build and tag Docker image
         run: |
+          docker build -t simple-test-docker:${{ env.VERSION }} .
+          # Also tag as latest for convenience
+          docker tag simple-test-docker:${{ env.VERSION }} simple-test-docker:latest
+
+      # Deploy with Docker Compose
+      - name: Deploy with version tag
+        env:
+          PORT: ${{ secrets.PORT }}
+          IMAGE_TAG: ${{ env.VERSION }}
+        run: |
+          cd /home/ubuntu/BIOma/simple-test-docker-compose
+          
+          # Stop old deployment
           docker compose down || true
-
-      # Deploy with Docker Compose (instead of docker run)
-      - name: Run new container with Docker Compose
-        run: |
-          # Export PORT secret for use in the compose file
-          export PORT=${{ secrets.PORT }}
-
-          # Assuming the self-hosted runner is in the correct directory where `docker-compose.yml` is located
-          cd /home/ubuntu/BIOma/simple-test-docker-compose  # Adjust this path to your project folder
-
-          # Ensure docker-compose.yml uses the PORT environment variable
-          # If PORT is set as an environment variable in docker-compose.yml
-          docker compose up -d --build  # Rebuild and start the containers in detached mode
+          
+          # Deploy new version (without --build since we built manually)
+          docker compose up -d
+          
+          # List all versions available
+          echo "Available versions:"
+          docker images simple-test-docker --format "{{.Tag}}" | sort -r
